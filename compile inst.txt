@@ -1,0 +1,7 @@
+--Compile .asm file to .bin
+--syntax: nasm -f bin <srcFile> -o <outputFile>
+nasm -f bin src\boot.asm -o boot_sect_simple.bin
+
+--Emulate through qemu
+--syntax: qemu-system-x86_64 <srcFile>
+qemu-system-x86_64 boot_sect_simple.bin
