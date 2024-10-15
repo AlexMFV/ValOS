@@ -1,23 +1,47 @@
-;A boot sector is composed of 512 bytes, the first 3 bytes represent an infinite loop (e9 fd ff)
-;Then it is followed by 510 zero-bytes and ends the section with the final 2 bytes (aa 55)
+[org 0x7c00]
+mov ah, 0x0e
 
-mov ah, 0x0f ;get video mode
+; attempt 1
+; Will fail again regardless of 'org' because we are still addressing the pointer
+; and not the data it points to
+mov al, "1"
+int 0x10
+mov al, the_secret
+int 0x10
+
+; attempt 2
+; Having solved the memory offset problem with 'org', this is now the correct answer
+mov al, "2"
+int 0x10
+mov al, [the_secret]
+int 0x10
+
+; attempt 3
+; As you expected, we are adding 0x7c00 twice, so this is not going to work
+mov al, "3"
+int 0x10
+mov bx, the_secret
+add bx, 0x7c00
+mov al, [bx]
+int 0x10
+
+; attempt 4
+; This still works because there are no memory references to pointers, so
+; the 'org' mode never applies. Directly addressing memory by counting bytes
+; is always going to work, but it's inconvenient
+mov al, "4"
+int 0x10
+mov al, [0x7c2d]
 int 0x10
 
 
+jmp $ ; infinite loop
 
-mov al, 'H'
-int 0x10 ;print function?
-mov al, 'e'
-int 0x10
-mov al, 'l'
-int 0x10
-int 0x10
-mov al, 'o'
-int 0x10
+the_secret:
+    ; ASCII code 0x58 ('X') is stored just before the zero-padding.
+    ; On this code that is at byte 0x2d (check it out using 'xxd file.bin')
+    db "X"
 
-;The infinite loop
-jmp $ ;jump to current address
-
-times 510-($-$$) db 0 ;added 510 bytes of padding (zero-bytes)
-dw 0xaa55 ;added the magic bytes at the end (aa 55)
+; zero padding and magic bios number
+times 510-($-$$) db 0
+dw 0xaa55
