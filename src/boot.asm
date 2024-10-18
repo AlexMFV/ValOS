@@ -1,42 +1,26 @@
-mov ah, 0x0e ; tty mode
+[bits 32] ; using 32-bit protected mode
 
-mov bp, 0x8000 ; this is an address far away from 0x7c00 so that we don't get overwritten
-mov sp, bp ; if the stack is empty then sp points to bp
+; this is how constants are defined
+VIDEO_MEMORY equ 0xb8000
+WHITE_ON_BLACK equ 0x0f ; the color byte for each character
 
-push 'A'
-push 'B'
-push 'C'
+print_string_pm:
+    pusha
+    mov edx, VIDEO_MEMORY
 
-; to show how the stack grows downwards
-mov al, [0x7ffe] ; 0x8000 - 2
-int 0x10
+print_string_pm_loop:
+    mov al, [ebx] ; [ebx] is the address of our character
+    mov ah, WHITE_ON_BLACK
 
-; however, don't try to access [0x8000] now, because it won't work
-; you can only access the stack top so, at this point, only 0x7ffe (look above)
-mov al, [0x8000]
-int 0x10
+    cmp al, 0 ; check if end of string
+    je print_string_pm_done
 
+    mov [edx], ax ; store character + attribute in video memory
+    add ebx, 1 ; next char
+    add edx, 2 ; next video memory position
 
-; recover our characters using the standard procedure: 'pop'
-; We can only pop full words so we need an auxiliary register to manipulate
-; the lower byte
-pop bx
-mov al, bl
-int 0x10 ; prints C
+    jmp print_string_pm_loop
 
-pop bx
-mov al, bl
-int 0x10 ; prints B
-
-pop bx
-mov al, bl
-int 0x10 ; prints A
-
-; data that has been pop'd from the stack is garbage now
-mov al, [0x8000]
-int 0x10
-
-
-jmp $
-times 510-($-$$) db 0
-dw 0xaa55
+print_string_pm_done:
+    popa
+    ret
